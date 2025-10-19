@@ -7,22 +7,26 @@ async function main() {
 
   // Create users
   const husband = await prisma.user.upsert({
-    where: { username: 'husband' },
+    where: { email: 'husband@example.com' },
     update: {},
     create: {
-      name: 'Husband',
-      username: 'husband',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'husband@example.com',
       password: 'password123', // In production, use hashed passwords
+      role: 'husband',
     },
   });
 
   const wife = await prisma.user.upsert({
-    where: { username: 'wife' },
+    where: { email: 'wife@example.com' },
     update: {},
     create: {
-      name: 'Wife',
-      username: 'wife',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'wife@example.com',
       password: 'password123', // In production, use hashed passwords
+      role: 'wife',
     },
   });
 

@@ -728,7 +728,7 @@ export default function Home() {
             <form onSubmit={handleConnectPartner} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Partner's Email Address
+                  Partner&apos;s Email Address
                 </label>
                 <input
                   type="email"
@@ -739,7 +739,7 @@ export default function Home() {
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Note: Your partner must have the same last name "{user.lastName}" to connect.
+                  Note: Your partner must have the same last name &quot;{user.lastName}&quot; to connect.
                 </p>
               </div>
               {error && (
@@ -958,8 +958,8 @@ export default function Home() {
               </p>
             ) : (
               unpaidDebts.map((debt) => {
-                const paidByUser = debt.paidBy === user.id ? user : user.partner;
-                const owedByUser = debt.owedBy === user.id ? user : user.partner;
+                const paidByUser = debt.paidBy === user.id ? user : user.partner!;
+                const owedByUser = debt.owedBy === user.id ? user : user.partner!;
 
                 return (
                   <div
@@ -1010,8 +1010,8 @@ export default function Home() {
               debts
                 .filter(d => d.isPaid)
                 .map((debt) => {
-                  const paidByUser = debt.paidBy === user.id ? user : user.partner;
-                  const owedByUser = debt.owedBy === user.id ? user : user.partner;
+                  const paidByUser = debt.paidBy === user.id ? user : user.partner!;
+                  const owedByUser = debt.owedBy === user.id ? user : user.partner!;
 
                   return (
                     <div
