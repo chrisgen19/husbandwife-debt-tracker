@@ -16,6 +16,9 @@ export async function PATCH(request: NextRequest) {
     // Get current user
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        partner: true,
+      },
     });
 
     if (!currentUser) {
@@ -25,10 +28,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Check if user is already connected to a partner
-    if (currentUser.partnerId) {
+    // If user has a partner and trying to change lastName, prevent it
+    if (currentUser.partnerId && lastName && lastName !== currentUser.lastName) {
       return NextResponse.json(
-        { error: 'Cannot edit profile while connected to a partner' },
+        { error: 'Cannot change last name while connected to a partner' },
         { status: 400 }
       );
     }

@@ -776,13 +776,90 @@ export default function Home() {
                 Connected with {user.partner.firstName} {user.partner.lastName}
               </p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-gray-600 hover:text-gray-800"
-            >
-              Logout
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowEditProfile(!showEditProfile);
+                  if (!showEditProfile) {
+                    setEditFirstName(user.firstName);
+                    setEditLastName(user.lastName);
+                    setEditEmail(user.email);
+                  }
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                {showEditProfile ? 'Cancel' : 'Edit Profile'}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                Logout
+              </button>
+            </div>
           </div>
+
+          {/* Edit Profile Form */}
+          {showEditProfile && (
+            <div className="mb-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Edit Profile</h2>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="First Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-100"
+                    placeholder="Last Name"
+                    disabled
+                    title="Cannot change last name while connected to partner"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Last name cannot be changed while connected to a partner
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+                {error && (
+                  <div className="text-red-500 text-sm">{error}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                >
+                  {loading ? 'Updating...' : 'Update Profile'}
+                </button>
+              </form>
+            </div>
+          )}
 
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-6 text-white">
             <h2 className="text-xl font-semibold mb-2">Current Balance</h2>
