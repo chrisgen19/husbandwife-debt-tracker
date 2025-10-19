@@ -25,7 +25,9 @@
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"YES\" npx prisma migrate reset --force)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma db push --force-reset --accept-data-loss)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"the database still not reset\" npx prisma migrate reset --force)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nReplace old migration with correct schema for User model\n\n- Remove old migration with ''name'' and ''username'' fields\n- Add new migration with firstName, lastName, email, role, partnerId\n- Add ConnectionRequest table for partner linking\n- This fixes production database schema mismatch\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

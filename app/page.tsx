@@ -344,6 +344,24 @@ export default function Home() {
     }
   };
 
+  const deleteDebt = async (debtId: string) => {
+    if (!confirm('Are you sure you want to delete this debt? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/debts/${debtId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        await fetchDebts();
+      }
+    } catch (err) {
+      setError('Failed to delete debt');
+    }
+  };
+
   const calculateBalance = () => {
     if (!user) return 0;
 
@@ -951,50 +969,153 @@ export default function Home() {
             <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
           )}
 
-          <div className="space-y-3">
-            {unpaidDebts.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
-                No unpaid items. All settled up!
-              </p>
-            ) : (
-              unpaidDebts.map((debt) => {
-                const paidByUser = debt.paidBy === user.id ? user : user.partner!;
-                const owedByUser = debt.owedBy === user.id ? user : user.partner!;
+          {unpaidDebts.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              No unpaid items. All settled up!
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {/* User's Unpaid Items */}
+              {(() => {
+                const userDebts = unpaidDebts.filter(d => d.paidBy === user.id);
+                const userTotal = userDebts.reduce((sum, d) => sum + d.amount, 0);
 
-                return (
-                  <div
-                    key={debt.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">
-                          {debt.description}
+                return userDebts.length > 0 ? (
+                  <div>
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-3 rounded">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-blue-900">
+                          {user.firstName} paid (You)
                         </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {paidByUser.firstName} paid • {owedByUser.firstName} owes
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(debt.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="text-xl font-bold text-gray-800">
-                          {formatPeso(debt.amount)}
+                        <div className="text-right">
+                          <div className="text-sm text-blue-700">
+                            {userDebts.length} {userDebts.length === 1 ? 'item' : 'items'}
+                          </div>
+                          <div className="font-bold text-blue-900">
+                            Total: {formatPeso(userTotal)}
+                          </div>
                         </div>
-                        <button
-                          onClick={() => togglePaid(debt.id, debt.isPaid)}
-                          className="mt-2 text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                        >
-                          Mark Paid
-                        </button>
                       </div>
                     </div>
+                    <div className="space-y-3">
+                      {userDebts.map((debt) => {
+                        const owedByUser = debt.owedBy === user.id ? user : user.partner!;
+                        return (
+                          <div
+                            key={debt.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white ml-4"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-800">
+                                  {debt.description}
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {owedByUser.firstName} owes
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(debt.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-xl font-bold text-gray-800">
+                                  {formatPeso(debt.amount)}
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() => togglePaid(debt.id, debt.isPaid)}
+                                    className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                  >
+                                    Mark Paid
+                                  </button>
+                                  <button
+                                    onClick={() => deleteDebt(debt.id)}
+                                    className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                ) : null;
+              })()}
+
+              {/* Partner's Unpaid Items */}
+              {(() => {
+                const partnerDebts = unpaidDebts.filter(d => d.paidBy === user.partner!.id);
+                const partnerTotal = partnerDebts.reduce((sum, d) => sum + d.amount, 0);
+
+                return partnerDebts.length > 0 ? (
+                  <div>
+                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-3 mb-3 rounded">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-indigo-900">
+                          {user.partner!.firstName} paid
+                        </h3>
+                        <div className="text-right">
+                          <div className="text-sm text-indigo-700">
+                            {partnerDebts.length} {partnerDebts.length === 1 ? 'item' : 'items'}
+                          </div>
+                          <div className="font-bold text-indigo-900">
+                            Total: {formatPeso(partnerTotal)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {partnerDebts.map((debt) => {
+                        const owedByUser = debt.owedBy === user.id ? user : user.partner!;
+                        return (
+                          <div
+                            key={debt.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white ml-4"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-800">
+                                  {debt.description}
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {owedByUser.firstName} owes
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(debt.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-xl font-bold text-gray-800">
+                                  {formatPeso(debt.amount)}
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() => togglePaid(debt.id, debt.isPaid)}
+                                    className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                  >
+                                    Mark Paid
+                                  </button>
+                                  <button
+                                    onClick={() => deleteDebt(debt.id)}
+                                    className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-xl p-6">
@@ -1034,9 +1155,23 @@ export default function Home() {
                           <div className="text-xl font-bold text-gray-600">
                             {formatPeso(debt.amount)}
                           </div>
-                          <span className="text-xs text-green-600 font-semibold">
+                          <span className="text-xs text-green-600 font-semibold mb-2 block">
                             ✓ PAID
                           </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => togglePaid(debt.id, debt.isPaid)}
+                              className="text-xs bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                            >
+                              Revert to Unpaid
+                            </button>
+                            <button
+                              onClick={() => deleteDebt(debt.id)}
+                              className="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
