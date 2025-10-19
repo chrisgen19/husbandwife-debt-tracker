@@ -48,17 +48,24 @@ model ConnectionRequest {
 }
 
 model DebtItem {
-  id          String    @id @default(cuid())
-  description String
-  amount      Float
-  isPaid      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  paidAt      DateTime?
+  id               String    @id @default(cuid())
+  description      String
+  amount           Float
+  isPaid           Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  paidAt           DateTime?
 
-  paidBy      String
-  paidByUser  User      @relation("PaidBy", fields: [paidBy], references: [id])
+  paidBy           String
+  paidByUser       User      @relation("PaidBy", fields: [paidBy], references: [id])
 
-  owedBy      String
-  owedByUser  User      @relation("OwedBy", fields: [owedBy], references: [id])
+  owedBy           String
+  owedByUser       User      @relation("OwedBy", fields: [owedBy], references: [id])
+
+  // Installment fields
+  isInstallment    Boolean   @default(false)
+  installmentGroup String?   // Groups installments together
+  installmentMonth Int?      // Which month (1, 2, 3, etc.)
+  totalInstallments Int?     // Total number of installments
+  dueDate          DateTime? // When this installment becomes payable
 }

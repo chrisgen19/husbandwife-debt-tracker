@@ -41,6 +41,11 @@ interface DebtItem {
   isPaid: boolean;
   createdAt: string;
   paidAt?: string | null;
+  isInstallment?: boolean;
+  installmentGroup?: string | null;
+  installmentMonth?: number | null;
+  totalInstallments?: number | null;
+  dueDate?: string | null;
 }
 
 export default function Home() {
@@ -78,6 +83,8 @@ export default function Home() {
     description: '',
     amount: '',
     whoPaid: '',
+    paymentTerms: 'straight', // 'straight' or 'installment'
+    installmentMonths: '3',
   });
 
   const formatPeso = (amount: number) => {
@@ -311,11 +318,19 @@ export default function Home() {
           amount: parseFloat(newDebt.amount),
           paidBy,
           owedBy,
+          paymentTerms: newDebt.paymentTerms,
+          installmentMonths: newDebt.paymentTerms === 'installment' ? parseInt(newDebt.installmentMonths) : undefined,
         }),
       });
 
       if (res.ok) {
-        setNewDebt({ description: '', amount: '', whoPaid: '' });
+        setNewDebt({
+          description: '',
+          amount: '',
+          whoPaid: '',
+          paymentTerms: 'straight',
+          installmentMonths: '3',
+        });
         setShowAddForm(false);
         await fetchDebts();
       } else {
@@ -898,7 +913,13 @@ export default function Home() {
             <button
               onClick={() => {
                 if (!showAddForm) {
-                  setNewDebt({ description: '', amount: '', whoPaid: user.id });
+                  setNewDebt({
+                    description: '',
+                    amount: '',
+                    whoPaid: user.id,
+                    paymentTerms: 'straight',
+                    installmentMonths: '3',
+                  });
                 }
                 setShowAddForm(!showAddForm);
               }}
@@ -959,6 +980,44 @@ export default function Home() {
                     <option value={user.partner.id}>{user.partner.firstName}</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Terms
+                  </label>
+                  <select
+                    value={newDebt.paymentTerms}
+                    onChange={(e) =>
+                      setNewDebt({ ...newDebt, paymentTerms: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="straight">Straight (Pay in full)</option>
+                    <option value="installment">Installment</option>
+                  </select>
+                </div>
+                {newDebt.paymentTerms === 'installment' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Number of Months
+                    </label>
+                    <input
+                      type="number"
+                      min="2"
+                      max="12"
+                      value={newDebt.installmentMonths}
+                      onChange={(e) =>
+                        setNewDebt({ ...newDebt, installmentMonths: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., 3"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Amount will be divided into {newDebt.installmentMonths} equal monthly payments
+                    </p>
+                  </div>
+                )}
                 <button
                   type="submit"
                   disabled={loading}
@@ -983,7 +1042,11 @@ export default function Home() {
               {/* User's Unpaid Items */}
               {(() => {
                 const userDebts = unpaidDebts.filter(d => d.paidBy === user.id);
-                const userTotal = userDebts.reduce((sum, d) => sum + d.amount, 0);
+                const payableUserDebts = userDebts.filter(d =>
+                  !d.isInstallment || (d.dueDate && new Date(d.dueDate) <= new Date())
+                );
+                const userTotal = payableUserDebts.reduce((sum, d) => sum + d.amount, 0);
+                const lockedCount = userDebts.length - payableUserDebts.length;
 
                 return userDebts.length > 0 ? (
                   <div>
@@ -994,7 +1057,8 @@ export default function Home() {
                         </h3>
                         <div className="text-right">
                           <div className="text-sm text-blue-700">
-                            {userDebts.length} {userDebts.length === 1 ? 'item' : 'items'}
+                            {payableUserDebts.length} {payableUserDebts.length === 1 ? 'item' : 'items'}
+                            {lockedCount > 0 && ` • ${lockedCount} locked`}
                           </div>
                           <div className="font-bold text-blue-900">
                             Total: {formatPeso(userTotal)}
@@ -1005,31 +1069,61 @@ export default function Home() {
                     <div className="space-y-3">
                       {userDebts.map((debt) => {
                         const owedByUser = debt.owedBy === user.id ? user : user.partner!;
+                        const isPayable = !debt.isInstallment || (debt.dueDate && new Date(debt.dueDate) <= new Date());
+                        const isLocked = !isPayable;
+
                         return (
                           <div
                             key={debt.id}
-                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white ml-4"
+                            className={`border border-gray-200 rounded-lg p-4 transition-shadow bg-white ml-4 ${
+                              isLocked ? 'opacity-50 bg-gray-100' : 'hover:shadow-md'
+                            }`}
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-800">
-                                  {debt.description}
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className={`font-semibold ${isLocked ? 'text-gray-500' : 'text-gray-800'}`}>
+                                    {debt.description}
+                                  </h3>
+                                  {debt.isInstallment && (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                      Installment
+                                    </span>
+                                  )}
+                                  {isLocked && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                                      🔒 Locked
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-sm mt-1 ${isLocked ? 'text-gray-500' : 'text-gray-600'}`}>
                                   {owedByUser.firstName} owes
                                 </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(debt.createdAt).toLocaleDateString()}
-                                </p>
+                                {debt.dueDate && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Due: {new Date(debt.dueDate).toLocaleDateString()}
+                                  </p>
+                                )}
+                                {!debt.dueDate && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(debt.createdAt).toLocaleDateString()}
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right ml-4">
-                                <div className="text-xl font-bold text-gray-800">
+                                <div className={`text-xl font-bold ${isLocked ? 'text-gray-500' : 'text-gray-800'}`}>
                                   {formatPeso(debt.amount)}
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                   <button
                                     onClick={() => togglePaid(debt.id, debt.isPaid)}
-                                    className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                    disabled={isLocked}
+                                    className={`text-sm px-3 py-1 rounded ${
+                                      isLocked
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-green-500 text-white hover:bg-green-600'
+                                    }`}
+                                    title={isLocked ? 'Payment not yet due' : 'Mark as paid'}
                                   >
                                     Mark Paid
                                   </button>
@@ -1053,7 +1147,11 @@ export default function Home() {
               {/* Partner's Unpaid Items */}
               {(() => {
                 const partnerDebts = unpaidDebts.filter(d => d.paidBy === user.partner!.id);
-                const partnerTotal = partnerDebts.reduce((sum, d) => sum + d.amount, 0);
+                const payablePartnerDebts = partnerDebts.filter(d =>
+                  !d.isInstallment || (d.dueDate && new Date(d.dueDate) <= new Date())
+                );
+                const partnerTotal = payablePartnerDebts.reduce((sum, d) => sum + d.amount, 0);
+                const lockedCount = partnerDebts.length - payablePartnerDebts.length;
 
                 return partnerDebts.length > 0 ? (
                   <div>
@@ -1064,7 +1162,8 @@ export default function Home() {
                         </h3>
                         <div className="text-right">
                           <div className="text-sm text-indigo-700">
-                            {partnerDebts.length} {partnerDebts.length === 1 ? 'item' : 'items'}
+                            {payablePartnerDebts.length} {payablePartnerDebts.length === 1 ? 'item' : 'items'}
+                            {lockedCount > 0 && ` • ${lockedCount} locked`}
                           </div>
                           <div className="font-bold text-indigo-900">
                             Total: {formatPeso(partnerTotal)}
@@ -1075,31 +1174,61 @@ export default function Home() {
                     <div className="space-y-3">
                       {partnerDebts.map((debt) => {
                         const owedByUser = debt.owedBy === user.id ? user : user.partner!;
+                        const isPayable = !debt.isInstallment || (debt.dueDate && new Date(debt.dueDate) <= new Date());
+                        const isLocked = !isPayable;
+
                         return (
                           <div
                             key={debt.id}
-                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white ml-4"
+                            className={`border border-gray-200 rounded-lg p-4 transition-shadow bg-white ml-4 ${
+                              isLocked ? 'opacity-50 bg-gray-100' : 'hover:shadow-md'
+                            }`}
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-800">
-                                  {debt.description}
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className={`font-semibold ${isLocked ? 'text-gray-500' : 'text-gray-800'}`}>
+                                    {debt.description}
+                                  </h3>
+                                  {debt.isInstallment && (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                      Installment
+                                    </span>
+                                  )}
+                                  {isLocked && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                                      🔒 Locked
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-sm mt-1 ${isLocked ? 'text-gray-500' : 'text-gray-600'}`}>
                                   {owedByUser.firstName} owes
                                 </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(debt.createdAt).toLocaleDateString()}
-                                </p>
+                                {debt.dueDate && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Due: {new Date(debt.dueDate).toLocaleDateString()}
+                                  </p>
+                                )}
+                                {!debt.dueDate && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(debt.createdAt).toLocaleDateString()}
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right ml-4">
-                                <div className="text-xl font-bold text-gray-800">
+                                <div className={`text-xl font-bold ${isLocked ? 'text-gray-500' : 'text-gray-800'}`}>
                                   {formatPeso(debt.amount)}
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                   <button
                                     onClick={() => togglePaid(debt.id, debt.isPaid)}
-                                    className="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                    disabled={isLocked}
+                                    className={`text-sm px-3 py-1 rounded ${
+                                      isLocked
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-green-500 text-white hover:bg-green-600'
+                                    }`}
+                                    title={isLocked ? 'Payment not yet due' : 'Mark as paid'}
                                   >
                                     Mark Paid
                                   </button>
