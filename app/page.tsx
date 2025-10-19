@@ -896,7 +896,12 @@ export default function Home() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Unpaid Items</h2>
             <button
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => {
+                if (!showAddForm) {
+                  setNewDebt({ description: '', amount: '', whoPaid: user.id });
+                }
+                setShowAddForm(!showAddForm);
+              }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
               {showAddForm ? 'Cancel' : 'Add New'}
