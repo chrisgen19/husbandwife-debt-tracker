@@ -1129,7 +1129,12 @@ export default function Home() {
                                   </button>
                                   <button
                                     onClick={() => deleteDebt(debt.id)}
-                                    className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                                    className={`text-sm px-3 py-1 rounded ${
+                                      isLocked
+                                        ? 'bg-red-600 text-white hover:bg-red-700 ring-2 ring-red-300'
+                                        : 'bg-red-500 text-white hover:bg-red-600'
+                                    }`}
+                                    title={isLocked ? 'Delete this installment' : 'Delete this item'}
                                   >
                                     Delete
                                   </button>
@@ -1234,7 +1239,12 @@ export default function Home() {
                                   </button>
                                   <button
                                     onClick={() => deleteDebt(debt.id)}
-                                    className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                                    className={`text-sm px-3 py-1 rounded ${
+                                      isLocked
+                                        ? 'bg-red-600 text-white hover:bg-red-700 ring-2 ring-red-300'
+                                        : 'bg-red-500 text-white hover:bg-red-600'
+                                    }`}
+                                    title={isLocked ? 'Delete this installment' : 'Delete this item'}
                                   >
                                     Delete
                                   </button>
