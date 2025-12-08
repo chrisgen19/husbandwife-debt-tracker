@@ -378,7 +378,7 @@ export default function Home() {
   };
 
   const calculateBalance = () => {
-    if (!user) return 0;
+    if (!user || !debts) return 0;
 
     return debts.reduce((balance, debt) => {
       if (debt.isPaid) return balance;
@@ -794,7 +794,7 @@ export default function Home() {
 
   // Main dashboard with partner connected
   const balance = calculateBalance();
-  const unpaidDebts = debts.filter(d => !d.isPaid);
+  const unpaidDebts = debts?.filter(d => !d.isPaid) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -1267,7 +1267,7 @@ export default function Home() {
             Payment History
           </h2>
           <div className="space-y-3">
-            {debts.filter(d => d.isPaid).length === 0 ? (
+            {!debts || debts.filter(d => d.isPaid).length === 0 ? (
               <p className="text-center text-gray-500 py-8">
                 No payment history yet
               </p>
